@@ -1,0 +1,8 @@
+po_number,vendor_id,po_date,currency,total_amount,status,description
+PO-1001,V001,2026-09-15,USD,10000.00,open,Office furniture refresh - 3rd floor
+PO-1002,V002,2026-10-01,USD,5000.00,open,October freight - Chicago to Dallas
+PO-1003,V003,2026-07-01,USD,12000.00,open,Annual cloud hosting subscription
+PO-1004,V004,2026-10-05,USD,2500.00,open,LED lighting retrofit - warehouse
+PO-1005,V004,2026-10-12,USD,6000.00,open,Structured cabling - new wing
+PO-1006,V006,2026-09-01,USD,4500.00,open,Housekeeping services Q4
+PO-0950,V001,2026-03-10,USD,3000.00,closed,Stationery restock - Q1

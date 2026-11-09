@@ -1,0 +1,65 @@
+[
+  {
+    "file": "H1_brightline_happy_path.pdf",
+    "scenario": "H1 - Happy path",
+    "expect": "APPROVED",
+    "explain": "Clean invoice, explicit PO, amounts match exactly.",
+    "order": 1
+  },
+  {
+    "file": "E1a_acme_split_po_part1.pdf",
+    "scenario": "E1 - Split PO (part 1 of 3)",
+    "expect": "APPROVED",
+    "explain": "First of three invoices against PO-1001 ($10,000). Bills $5,000.",
+    "order": 2
+  },
+  {
+    "file": "E1b_acme_split_po_part2.pdf",
+    "scenario": "E1 - Split PO (part 2 of 3)",
+    "expect": "APPROVED",
+    "explain": "Second invoice against PO-1001. Bills $4,000; $1,000 left on the PO.",
+    "order": 3
+  },
+  {
+    "file": "E1c_acme_split_po_overbilled.pdf",
+    "scenario": "E1 - Split PO (part 3, over-billed)",
+    "expect": "NEEDS_REVIEW",
+    "explain": "Third invoice bills 30 monitor arms ($1,500) but the PO allows 20 and only $1,000 remains.",
+    "order": 4
+  },
+  {
+    "file": "E2a_nimbus_original.pdf",
+    "scenario": "E2 - Duplicate (original)",
+    "expect": "APPROVED",
+    "explain": "Original Nimbus invoice NCS-1042 for Jul-Sep hosting.",
+    "order": 5
+  },
+  {
+    "file": "E2b_nimbus_resubmitted.pdf",
+    "scenario": "E2 - Duplicate (resubmitted)",
+    "expect": "REJECTED",
+    "explain": "Same invoice resubmitted as 'NCS1042' with a new date. Not the same file, so a hash check alone would miss it.",
+    "order": 6
+  },
+  {
+    "file": "E3_quantum_scanned_no_po.pdf",
+    "scenario": "E3 - Scanned, no PO number",
+    "expect": "NEEDS_REVIEW",
+    "explain": "Scanned image with no PO reference. Needs AI vision to read it; the PO is inferred and suggested, never assumed.",
+    "order": 7
+  },
+  {
+    "file": "E4_orbit_bank_changed.pdf",
+    "scenario": "E4 - Bank details changed",
+    "expect": "ON_HOLD",
+    "explain": "Everything matches the PO, but the bank account differs from the vendor master: classic payment-fraud pattern.",
+    "order": 8
+  },
+  {
+    "file": "T1_quantum_within_tolerance.pdf",
+    "scenario": "T1 - Small overage within tolerance",
+    "expect": "APPROVED",
+    "explain": "Adds a $40 freight charge not on the PO. Within tolerance (min of 2% / $50), so approved with a note.",
+    "order": 9
+  }
+]

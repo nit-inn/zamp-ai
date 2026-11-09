@@ -1,0 +1,12 @@
+po_number,line_no,description,qty,unit_price
+PO-1001,1,Ergonomic office chair,20,250.00
+PO-1001,2,Height-adjustable standing desk,10,400.00
+PO-1001,3,Dual monitor arm,20,50.00
+PO-1002,1,Full truckload freight Chicago to Dallas,4,1150.00
+PO-1002,2,Pallet packaging and shrink wrap,1,400.00
+PO-1003,1,Managed cloud hosting (monthly),12,1000.00
+PO-1004,1,LED panel light 2x2 ft,40,45.00
+PO-1004,2,Installation labour,1,700.00
+PO-1005,1,Cat6 structured cabling (per metre),500,12.00
+PO-1006,1,Housekeeping services (monthly),3,1500.00
+PO-0950,1,Stationery assorted pack,100,30.00

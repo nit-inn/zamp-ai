@@ -1,0 +1,22 @@
+# Business rules for invoice decisions. Edit these and re-run: no code change needed.
+
+# Amount tolerance: an invoice may exceed the PO (or a PO line price) by up to
+# the SMALLER of these two values and still pass (with a note).
+amount_tolerance_pct: 2.0
+amount_tolerance_abs: 50
+
+# Extraction fields with confidence below this go to a human.
+min_extraction_confidence: 0.85
+
+# Invoices above this total always need a human, even if every check passes.
+auto_approve_max_amount: 25000
+
+# Look-back window for "same vendor, same amount, different invoice number" duplicates.
+duplicate_window_days: 90
+
+# Fuzzy-match thresholds (0-100).
+vendor_name_match_threshold: 85
+line_description_match_threshold: 70
+
+# Invoices older than this many days are flagged as stale.
+max_invoice_age_days: 365

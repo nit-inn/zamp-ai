@@ -1,0 +1,7 @@
+vendor_id,legal_name,aliases,tax_id,bank_account,routing_number,status,payment_terms,currency
+V001,Acme Office Supplies Inc,ACME Office Supplies|Acme Supplies,12-3456789,004512345678,021000021,approved,Net 30,USD
+V002,Brightline Logistics LLC,Brightline Logistics|Brightline,34-5678901,007788990011,026009593,approved,Net 30,USD
+V003,Nimbus Cloud Services Inc,Nimbus Cloud|Nimbus,56-7890123,009911223344,121000358,approved,Net 15,USD
+V004,Quantum Electricals Corp,Quantum Electricals|Quantum Electric,78-9012345,001122334455,011000138,approved,Net 45,USD
+V005,Shadow Traders LLC,Shadow Traders,90-1234567,005566778899,021000089,blocked,Net 30,USD
+V006,Orbit Facility Services LLC,Orbit Facility Services|Orbit Facilities,23-4567890,003344556677,031000053,approved,Net 30,USD
