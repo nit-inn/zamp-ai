@@ -23,6 +23,10 @@ def run(path):
                     print(f"         - {c['level']}: {c['title']}: {c['detail']}")
         elif ev["type"] == "decision":
             print(f"  ==> {ev['decision']}: {ev['headline']}")
+            if ev["decision"] == "PENDING_APPROVAL":  # stand in for the user pressing Approve
+                store.set_review(ev["run_id"], "APPROVED", "Approved after all checks passed")
+                print("  ==> APPROVED by user")
+                return "APPROVED"
             return ev["decision"]
 
 

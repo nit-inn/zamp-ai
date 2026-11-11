@@ -118,12 +118,23 @@ def find_same_amount(vendor_id: str, total: float, number_norm: str) -> list[dic
             "AND decision!='REJECTED'", (vendor_id, total, number_norm))]
 
 
-def po_billed(po_number: str) -> tuple[float, int]:
-    """Amount (pre-tax) already approved against a PO, and how many invoices."""
+def po_billed(po_number: str, approved_only: bool = False) -> tuple[float, int]:
+    """Amount (pre-tax) committed against a PO, and how many invoices.
+
+    By default this includes invoices awaiting approval, so two clean invoices can't both claim the
+    same remaining balance; approved_only=True counts only those a person has approved."""
+    states = ("APPROVED",) if approved_only else ("APPROVED", "PENDING_APPROVAL")
     with _conn() as c:
-        r = c.execute("SELECT COALESCE(SUM(subtotal),0), COUNT(*) FROM runs "
-                      "WHERE po_number=? AND decision='APPROVED'", (po_number,)).fetchone()
+        r = c.execute(f"SELECT COALESCE(SUM(subtotal),0), COUNT(*) FROM runs WHERE po_number=? "
+                      f"AND decision IN ({','.join('?' * len(states))})", (po_number, *states)).fetchone()
         return float(r[0]), int(r[1])
+
+
+def uploaded_invoice_files(po_number: str, known: set[str]) -> int:
+    """Distinct uploaded files (not in `known`, e.g. the sample set) processed against a PO."""
+    with _conn() as c:
+        names = {r[0] for r in c.execute("SELECT DISTINCT filename FROM runs WHERE po_number=?", (po_number,))}
+    return len(names - known)
 
 
 def set_review(run_id: int, decision: str, note: str) -> None:

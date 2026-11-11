@@ -53,3 +53,15 @@ def load_rules() -> dict:
     """Re-read on every run so rules.yaml can be edited live during a demo."""
     with open(ROOT / "rules.yaml", encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+def save_rules(updates: dict) -> None:
+    """Change top-level values in rules.yaml in place, keeping its comments and layout."""
+    import re
+    path = ROOT / "rules.yaml"
+    text = path.read_text(encoding="utf-8")
+    for key, value in updates.items():
+        text, n = re.subn(rf"(?m)^({re.escape(key)}:[ \t]*)\S.*$", lambda m: f"{m.group(1)}{value}", text)
+        if not n:
+            text = text.rstrip("\n") + f"\n{key}: {value}\n"
+    path.write_text(text, encoding="utf-8")

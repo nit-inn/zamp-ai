@@ -29,7 +29,8 @@ STEPS = [
 
 # Severity ladder. The worst level across all checks decides the outcome.
 LEVELS = {"pass": 0, "info": 1, "warn": 2, "hold": 3, "fail": 4}
-DECISION_FOR = {0: "APPROVED", 1: "APPROVED", 2: "NEEDS_REVIEW", 3: "ON_HOLD", 4: "REJECTED"}
+# Clean invoices are never paid automatically: they wait for a person to press Approve.
+DECISION_FOR = {0: "PENDING_APPROVAL", 1: "PENDING_APPROVAL", 2: "NEEDS_REVIEW", 3: "ON_HOLD", 4: "REJECTED"}
 
 
 def money(x: float | None) -> str:
@@ -84,7 +85,7 @@ def step_extract(c: Ctx):
     m = c.meta
     src = "text PDF" if m["text_layer"] else "scanned image (no text layer)"
     if m["method"] == "gemini":
-        checks = [chk("pass", f"Read by {m['model']}", f"Source: {src}. {m['seconds']}s.")]
+        checks = [chk("pass", "Invoice read", f"Read by {m['model']}. Source: {src}.")]
         if m.get("attempts"):
             checks.append(chk("info", "Switched to backup model", "; ".join(m["attempts"])))
     else:
@@ -251,7 +252,7 @@ def step_checks(c: Ctx):
                        f"({dup['decision']}, {money(dup['total'])}){same}. Likely a resubmission."))
     else:
         out.append(chk("pass", "Not a duplicate", f"No earlier invoice {num} from this vendor."))
-        if inv.get("total"):
+        if inv.get("total") and r["duplicate_window_days"] > 0:  # 0 = check switched off
             for s in store.find_same_amount(v["vendor_id"], inv["total"], num):
                 try:
                     gap = abs((date.fromisoformat(inv["invoice_date"]) - date.fromisoformat(s["invoice_date"])).days)
@@ -310,27 +311,124 @@ def step_checks(c: Ctx):
 # ---------------- decision ----------------
 
 NEXT = {
-    "APPROVED": "Schedule payment of {total} to {vendor} (account on file, {terms}).",
+    "PENDING_APPROVAL": "Approve to schedule payment of {total} to {vendor} (account on file, {terms}).",
+    "APPROVED":"Schedule payment of {total} to {vendor} (account on file, {terms}).",
     "NEEDS_REVIEW": "Route to AP reviewer with the flagged items below.",
     "ON_HOLD": "Do not pay. Verify with the vendor via the contact on file; escalate to the finance controller.",
     "REJECTED": "Do not pay. Notify the vendor / requester with the reason below.",
 }
 
 
+# What a person should do about each kind of issue (matched on the start of the check title).
+FIX = [
+    ("Exact duplicate file", "This exact file was already processed. Discard it; nothing to pay."),
+    ("Could not read invoice", "Ask the vendor for a clearer copy or a text-based PDF, then resubmit."),
+    ("Required fields missing", "Ask the vendor for a corrected invoice with the missing details."),
+    ("Line maths", "Ask the vendor for a corrected invoice; the line amounts don't add up."),
+    ("Line items don't sum", "Ask the vendor for a corrected invoice; lines don't match the subtotal."),
+    ("Subtotal + tax", "Ask the vendor for a corrected invoice; the total doesn't add up."),
+    ("Invoice is future-dated", "Confirm the invoice date with the vendor."),
+    ("Stale invoice", "Check why the invoice is so old before paying it."),
+    ("Unrecognised date", "Confirm the invoice date by checking the PDF."),
+    ("Low-confidence fields", "Check the flagged fields against the PDF before approving."),
+    ("Unknown vendor", "Onboard the vendor (tax ID, bank details) in the vendor master, then resubmit."),
+    ("Vendor is blocked", "Do not pay. Ask procurement why this vendor is blocked."),
+    ("Tax ID and name", "Confirm which vendor this is before going further."),
+    ("Bank account differs", "Call the vendor on the number in the vendor master (not the invoice). "
+                             "Change bank details only through the vendor-change process."),
+    ("Currency differs", "Confirm the billing currency with the vendor."),
+    ("PO not found", "Ask the requester or vendor for the correct PO number."),
+    ("PO belongs to another vendor", "Check the PO number with the requester."),
+    ("PO is closed", "Ask procurement whether the PO should be reopened."),
+    ("No PO on invoice", "Confirm the suggested PO with the requester, then approve on the Dashboard."),
+    ("No matching PO", "Ask the requester to raise or share the PO for this purchase."),
+    ("Duplicate invoice number", "Reject, and tell the vendor this invoice was already processed."),
+    ("Possible duplicate", "Compare with the earlier invoice and confirm with the vendor it's a separate charge."),
+    ("Line not on PO", "Confirm the extra charge with the requester."),
+    ("Quantity exceeds PO", "Ask the requester to amend the PO, or the vendor to correct the quantity."),
+    ("Unit price above PO", "Ask the vendor to bill at the PO price, or get the PO amended."),
+    ("Exceeds remaining PO balance", "Get a PO amendment or a credit note before paying."),
+    ("Above auto-approval limit", "Get sign-off from an approver with a high enough limit."),
+]
+
+
+def fix_for(title: str) -> str:
+    return next((f for prefix, f in FIX if title.startswith(prefix)), "")
+
+
+def build_match(c: Ctx) -> dict:
+    """Side-by-side view of the invoice vs vendor master and PO, for the reviewer to compare."""
+    inv, v, po, r = c.inv, c.vendor or {}, c.po, c.rules
+    if not inv:
+        return {}
+    rows = []
+
+    def row(field, on_inv, on_rec, source, ok):
+        rows.append({"field": field, "invoice": "—" if on_inv in (None, "") else str(on_inv),
+                     "record": "—" if on_rec in (None, "") else str(on_rec), "source": source, "ok": ok})
+
+    if v:
+        row("Vendor", inv.get("vendor_name"), v["legal_name"], "Vendor master", True)
+        row("Tax ID", inv.get("vendor_tax_id"), v["tax_id"], "Vendor master",
+            None if not inv.get("vendor_tax_id") else inv["vendor_tax_id"] == v["tax_id"])
+        acct = inv.get("bank_account")
+        row("Bank account", mask(acct) if acct else None, mask(v["bank_account"]), "Vendor master",
+            None if not acct else acct == v["bank_account"])
+        row("Currency", inv.get("currency"), v["currency"], "Vendor master",
+            None if not inv.get("currency") else inv["currency"] == v["currency"])
+    else:
+        row("Vendor", inv.get("vendor_name"), None, "Vendor master", False)
+
+    out = {"rows": rows, "lines": [], "po": None}
+    if not po:
+        row("PO number", inv.get("po_number"), None, "Purchase orders", False)
+        return out
+
+    billed, n = store.po_billed(po["po_number"])
+    remaining = round(po["total_amount"] - billed, 2)
+    sub = inv.get("subtotal") or 0
+    row("PO number", inv.get("po_number") or "not printed", po["po_number"] + (" (suggested)" if c.po_inferred else ""),
+        "Purchase orders", not c.po_inferred)
+    row("Subtotal vs PO balance", money(sub), f"{money(remaining)} remaining", "Purchase orders",
+        sub - remaining <= c.tolerance(po["total_amount"]))
+    out["po"] = {"number": po["po_number"], "description": po["description"], "total": po["total_amount"],
+                 "billed_before": billed, "invoices_before": n, "this_invoice": sub,
+                 "remaining_after": round(remaining - sub, 2), "inferred": c.po_inferred}
+
+    names = [p["description"] for p in po["lines"]]
+    for li in inv.get("line_items") or []:
+        m = process.extractOne(li["description"], names, scorer=fuzz.token_set_ratio)
+        pl = po["lines"][names.index(m[0])] if m and m[1] >= r["line_description_match_threshold"] else None
+        if not pl:
+            status = "Not on PO"
+        elif li.get("quantity") and li["quantity"] > pl["qty"]:
+            status = "Qty over PO"
+        elif li.get("unit_price") and li["unit_price"] - pl["unit_price"] > c.tolerance(pl["unit_price"]):
+            status = "Price above PO"
+        else:
+            status = "Match"
+        out["lines"].append({
+            "inv_item": li.get("description"), "inv_qty": li.get("quantity"), "inv_price": li.get("unit_price"),
+            "inv_amount": li.get("amount"), "po_item": pl["description"] if pl else None,
+            "po_qty": pl["qty"] if pl else None, "po_price": pl["unit_price"] if pl else None, "status": status})
+    return out
+
+
 def decide(c: Ctx, halted_at: str | None) -> dict:
     worst = max((LEVELS[x["level"]] for x in c.checks), default=0)
     decision = DECISION_FOR[worst]
-    flagged = sorted([x for x in c.checks if LEVELS[x["level"]] >= 1], key=lambda x: -LEVELS[x["level"]])
+    flagged = sorted([{**x, "fix": fix_for(x["title"])} for x in c.checks if LEVELS[x["level"]] >= 1],
+                     key=lambda x: -LEVELS[x["level"]])
     top = [x for x in flagged if LEVELS[x["level"]] == worst]
-    if decision == "APPROVED":
+    if decision == "PENDING_APPROVAL":
         headline = "All checks passed" + (" (with notes)" if flagged else "")
     else:
-        headline = top[0]["title"] + (f" (+{len(top) - 1} more)" if len(top) > 1 else "")
+        headline = "; ".join(dict.fromkeys(x["title"] for x in top))
     v = c.vendor or {}
     nxt = NEXT[decision].format(total=money(c.inv.get("total")), vendor=v.get("legal_name", "vendor"),
                                 terms=v.get("payment_terms", ""))
     return {"decision": decision, "headline": headline, "next_action": nxt,
-            "reasons": flagged, "halted_at": halted_at}
+            "reasons": flagged, "halted_at": halted_at, "match": build_match(c)}
 
 
 # ---------------- runner ----------------
@@ -352,6 +450,8 @@ def run_pipeline(pdf_bytes: bytes, filename: str) -> Iterator[dict]:
         yield {"type": "start", "step": key, "title": title}
         t0 = time.time()
         checks, summary, data, halt = FUNCS[key](c)
+        for x in checks:
+            x["step"] = title
         c.checks += checks
         worst = max((LEVELS[x["level"]] for x in checks), default=0)
         ev = {"type": "done", "step": key, "title": title, "status": list(LEVELS)[worst],

@@ -83,7 +83,8 @@ SCENARIOS = [
          expect="NEEDS_REVIEW", order=7,
          explain="Scanned image with no PO reference. Needs AI vision to read it; the PO is inferred and suggested, never assumed.",
          vendor="quantum", layout="D", number="QE-5531", date=date(2026, 11, 3),
-         po=None, lines=[("LED panel light 2x2 ft", 40, 45.00), ("Installation labour", 1, 700.00)],
+         po=None, po_ref="PO-1004",  # not printed on the invoice; the PO it really belongs to
+         lines=[("LED panel light 2x2 ft", 40, 45.00), ("Installation labour", 1, 700.00)],
          scanned=True),
     dict(file="E4_orbit_bank_changed.pdf", scenario="E4 - Bank details changed",
          expect="ON_HOLD", order=8,
@@ -192,7 +193,8 @@ def main() -> None:
         if s.get("scanned"):
             data = make_scanned(data)
         (OUT / s["file"]).write_bytes(data)
-        manifest.append({k: s[k] for k in ("file", "scenario", "expect", "explain", "order")})
+        manifest.append({**{k: s[k] for k in ("file", "scenario", "expect", "explain", "order")},
+                         "po": s.get("po") or s.get("po_ref")})
         print(f"  wrote {s['file']}")
     (OUT / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(f"{len(manifest)} invoices + manifest.json in {OUT}")

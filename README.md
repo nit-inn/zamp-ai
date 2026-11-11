@@ -14,7 +14,7 @@ Takes a vendor invoice PDF and produces a clear, reasoned decision (**APPROVED /
 | 4 | Vendor match | Tax ID + fuzzy name vs vendor master; blocked vendors; **bank details vs master** |
 | 5 | PO match | Explicit PO lookup, or **infers** the best open PO (line similarity + amount fit) for review |
 | 6 | Business checks | Duplicate invoice number (normalised), same-amount duplicates, qty / price vs PO lines, **remaining PO balance across invoices**, tolerance, auto-approve limit |
-| 7 | Decision | Worst check wins: info → approve with note, warn → review, hold → on hold, fail → reject |
+| 7 | Decision | Worst check wins: info → approve with note, warn → review, hold → on hold, fail → reject. Nothing is paid automatically: when every check passes the invoice is **awaiting approval** until a user presses Approve (or Reject) |
 
 ## Demo scenarios (`samples/`)
 
@@ -27,7 +27,7 @@ Takes a vendor invoice PDF and produces a clear, reasoned decision (**APPROVED /
 | 8 | E4 Bank account changed (invoice asks to pay a new account) | ON HOLD |
 | 9 | T1 $40 freight not on PO, within $50 tolerance | APPROVED with note |
 
-Run them in order; E1 and E2 depend on earlier runs. Use **Reset demo data** in the sidebar to start over.
+"APPROVED" means all checks passed and the user pressed **Approve**. Run them in order and approve each clean invoice before the next; E1 and E2 depend on earlier runs (`run_cli.py` approves them for you). Use **Reset demo data** in the sidebar to start over.
 
 ## Run locally
 
@@ -45,6 +45,6 @@ python -m venv .venv
 
 - Invoices arrive one at a time by upload; email intake would be a production add-on.
 - The procurement system is mocked with CSVs in `data/`; the vendor master is the source of truth for bank details.
-- PO balance is tracked pre-tax; only APPROVED invoices consume PO balance.
+- PO balance is tracked pre-tax. Approved invoices and those awaiting approval both count against it, so two clean invoices can't claim the same balance; a rejection frees it.
 - Tolerance = the smaller of 2% and $50 (`rules.yaml`).
 - Inferred POs and bank-detail changes always go to a human.
