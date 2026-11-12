@@ -9,7 +9,7 @@ amount_tolerance_abs: 50
 min_extraction_confidence: 0.85
 
 # Invoices above this total always need a human, even if every check passes.
-auto_approve_max_amount: 25000
+auto_approve_max_amount: 2500
 
 # Look-back window for "same vendor, same amount, different invoice number" duplicates.
 duplicate_window_days: 90

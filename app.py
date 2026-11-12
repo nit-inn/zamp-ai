@@ -20,88 +20,148 @@ st.set_page_config(page_title="Invoice Decision Engine", page_icon=":material/re
 STEP_KEYS = [k for k, _ in STEPS]
 DEC_STATUS = {"PENDING_APPROVAL": "pass", "APPROVED": "pass", "NEEDS_REVIEW": "warn", "ON_HOLD": "hold", "REJECTED": "fail"}
 
+# Colours come only from the design tokens in CSS below (var(--…)); Python never holds raw hex.
 # status -> (tint background, strong colour, pill label)
 PAL = {
-    "pending": ("#F3F4F6", "#9CA3AF", "Pending"),
-    "running": ("#EEF2FF", "#4F46E5", "Running"),
-    "pass": ("#ECFDF5", "#047857", "Passed"),
-    "info": ("#EEF2FF", "#4338CA", "Passed · note"),
-    "warn": ("#FFFBEB", "#B45309", "Review"),
-    "hold": ("#FEF2F2", "#B91C1C", "Hold"),
-    "fail": ("#FEF2F2", "#B91C1C", "Failed"),
-    "skipped": ("#F3F4F6", "#9CA3AF", "Skipped"),
+    "pending": ("var(--neutral-tint)", "var(--text-muted)", "Pending"),
+    "running": ("var(--primary-tint)", "var(--primary)", "Running"),
+    "pass": ("var(--success-tint)", "var(--success)", "Passed"),
+    "info": ("var(--primary-tint)", "var(--primary-strong)", "Passed · note"),
+    "warn": ("var(--warning-tint)", "var(--warning)", "Review"),
+    "hold": ("var(--danger-tint)", "var(--danger)", "Hold"),
+    "fail": ("var(--danger-tint)", "var(--danger)", "Failed"),
+    "skipped": ("var(--neutral-tint)", "var(--text-muted)", "Skipped"),
 }
 GLYPH = {"pass": "✓", "info": "✓", "warn": "!", "hold": "‖", "fail": "✕", "skipped": "–"}
-DOT = {"pass": "#10B981", "info": "#6366F1", "warn": "#F59E0B", "hold": "#EF4444", "fail": "#DC2626"}
+DOT = {"pass": "var(--success-dot)", "info": "var(--primary-dot)", "warn": "var(--warning-dot)",
+       "hold": "var(--danger-dot)", "fail": "var(--danger-dot)"}
 # decision -> (label, tint, strong, border)
 DEC = {
-    "PENDING_APPROVAL": ("Awaiting approval", "#EEF2FF", "#4338CA", "#C7D2FE"),
-    "APPROVED": ("Approved", "#ECFDF5", "#047857", "#A7F3D0"),
-    "NEEDS_REVIEW": ("Needs review", "#FFFBEB", "#B45309", "#FDE68A"),
-    "ON_HOLD": ("On hold", "#FEF2F2", "#B91C1C", "#FECACA"),
-    "REJECTED": ("Rejected", "#FEF2F2", "#991B1B", "#FECACA"),
+    "PENDING_APPROVAL": ("Awaiting approval", "var(--primary-tint)", "var(--primary-strong)", "var(--primary-border)"),
+    "APPROVED": ("Approved", "var(--success-tint)", "var(--success)", "var(--success-border)"),
+    "NEEDS_REVIEW": ("Needs review", "var(--warning-tint)", "var(--warning)", "var(--warning-border)"),
+    "ON_HOLD": ("On hold", "var(--danger-tint)", "var(--danger)", "var(--danger-border)"),
+    "REJECTED": ("Rejected", "var(--danger-tint)", "var(--danger-strong)", "var(--danger-border)"),
 }
 
 CSS = """<style>
+/* ---- design tokens: primitives -> semantic roles (see .claude/skills/design-system) ---- */
+:root{
+  --indigo-50:#EEF2FF;--indigo-100:#E0E7FF;--indigo-200:#C7D2FE;--indigo-500:#6366F1;--indigo-600:#4F46E5;--indigo-700:#4338CA;
+  --green-50:#ECFDF5;--green-200:#A7F3D0;--green-500:#10B981;--green-700:#047857;
+  --amber-50:#FFFBEB;--amber-200:#FDE68A;--amber-500:#F59E0B;--amber-700:#B45309;
+  --red-50:#FEF2F2;--red-200:#FECACA;--red-600:#DC2626;--red-700:#B91C1C;--red-800:#991B1B;
+  --gray-0:#FFFFFF;--gray-25:#FAFBFD;--gray-50:#F6F7FB;--gray-100:#EEF0F5;--gray-200:#E4E7EF;--gray-300:#D3D8E3;
+  --gray-500:#667085;--gray-600:#4B5565;--gray-700:#344054;--gray-900:#101828;
+
+  --primary:var(--indigo-600);--primary-strong:var(--indigo-700);--primary-tint:var(--indigo-50);
+  --primary-border:var(--indigo-200);--primary-dot:var(--indigo-500);
+  --success:var(--green-700);--success-tint:var(--green-50);--success-border:var(--green-200);--success-dot:var(--green-500);
+  --warning:var(--amber-700);--warning-tint:var(--amber-50);--warning-border:var(--amber-200);--warning-dot:var(--amber-500);
+  --danger:var(--red-700);--danger-strong:var(--red-800);--danger-tint:var(--red-50);--danger-border:var(--red-200);--danger-dot:var(--red-600);
+  --neutral-tint:var(--gray-100);
+  --surface:var(--gray-0);--surface-subtle:var(--gray-25);--surface-muted:var(--gray-50);
+  --border:var(--gray-200);--border-soft:var(--gray-100);
+  --text:var(--gray-900);--text-body:var(--gray-700);--text-secondary:var(--gray-600);--text-muted:var(--gray-500);
+
+  --radius-sm:6px;--radius-md:10px;--radius-lg:14px;--radius-pill:999px;
+  --shadow-xs:0 1px 2px rgba(16,24,40,.05);--shadow-sm:0 1px 3px rgba(16,24,40,.08),0 1px 2px rgba(16,24,40,.04);
+  --font-mono:ui-monospace,SFMono-Regular,"JetBrains Mono",Consolas,monospace;
+  --ease:cubic-bezier(.2,.8,.2,1);--dur:180ms;
+}
+/* ---- Streamlit chrome ---- */
 [data-testid="stSidebarCollapseButton"],[data-testid="stSidebarCollapsedControl"],[data-testid="stExpandSidebarButton"]{display:none !important}
 [data-testid="stSidebarHeader"] img{height:2.4rem !important;max-width:none;margin-top:1.25rem !important}
 [data-testid="stSidebarHeader"]{height:auto !important;min-height:4.5rem}
-.zs-runhead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 6px}
-.zs-eyebrow{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6B7280}
-.zs-fname{font-size:18px;font-weight:600;color:#111827;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;word-break:break-all}
-.zs-step{display:flex;gap:14px;align-items:flex-start;padding:14px 18px;border:1px solid #E6E8F0;border-radius:12px;background:#FFFFFF}
-.zs-step.s-pending{background:#FAFBFC}
-.zs-step.s-pending .zs-title{color:#9CA3AF}
-.zs-step.s-running{border-color:#C7D2FE;background:#FAFAFF}
+[data-testid="stSidebar"]{border-right:1px solid var(--border)}
+[data-testid="stMainBlockContainer"]{padding-top:2.5rem}
+h1,h2,h3{letter-spacing:-.01em}
+button{transition:background-color var(--dur) var(--ease),border-color var(--dur) var(--ease),box-shadow var(--dur) var(--ease)}
+[data-testid="stTabs"] [role="tab"]{font-weight:500}
+[data-testid="InputInstructions"]{display:none !important}  /* no "Press Enter to apply" hints */
+/* ---- layout primitives ---- */
+.zs-section{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:28px 0 10px}
+.zs-section-t{font-size:18px;font-weight:600;color:var(--text);letter-spacing:-.01em}
+.zs-section-h{font-size:13px;color:var(--text-muted)}
+.zs-runhead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 8px}
+.zs-eyebrow{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)}
+.zs-fname{font-size:18px;font-weight:600;color:var(--text);font-family:var(--font-mono);overflow-wrap:anywhere}
+/* ---- pipeline step cards ---- */
+.zs-step{display:flex;gap:14px;align-items:flex-start;padding:14px 18px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);box-shadow:var(--shadow-xs);transition:border-color var(--dur) var(--ease),background-color var(--dur) var(--ease)}
+.zs-step.s-pending{background:var(--surface-subtle);box-shadow:none}
+.zs-step.s-pending .zs-title{color:var(--text-muted);font-weight:500}
+.zs-step.s-running{border-color:var(--primary-border);background:var(--surface-subtle)}
 .zs-ic{position:relative;flex:none;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
-.s-running .zs-ic::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:2px solid transparent;border-top-color:#4F46E5;animation:zsspin .8s linear infinite}
+.s-running .zs-ic::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:2px solid transparent;border-top-color:var(--primary);animation:zsspin .8s linear infinite}
 @keyframes zsspin{to{transform:rotate(360deg)}}
 .zs-body{flex:1;min-width:0}
 .zs-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:28px}
-.zs-title{font-weight:600;color:#111827;font-size:15px}
-.zs-sum{color:#4B5563;font-size:14px}
+.zs-title{font-weight:600;color:var(--text);font-size:15px}
+.zs-sum{color:var(--text-secondary);font-size:14px;font-variant-numeric:tabular-nums}
 .zs-right{margin-left:auto;display:flex;gap:10px;align-items:center}
-.zs-ms{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;color:#9CA3AF}
-.zs-pill{font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;letter-spacing:.02em;white-space:nowrap}
+.zs-ms{font-family:var(--font-mono);font-size:12px;color:var(--text-muted)}
+.zs-pill{font-size:11px;font-weight:600;padding:3px 9px;border-radius:var(--radius-pill);letter-spacing:.02em;white-space:nowrap}
 .zs-checks{margin-top:8px;display:flex;flex-direction:column;gap:5px}
-.zs-ck{display:flex;gap:10px;align-items:baseline;font-size:13.5px;color:#374151;line-height:1.5}
+.zs-ck{display:flex;gap:10px;align-items:baseline;font-size:13.5px;color:var(--text-body);line-height:1.5}
 .zs-dot{flex:none;width:7px;height:7px;border-radius:50%;transform:translateY(-1px)}
-.zs-ck b{font-weight:600;color:#111827}
-.zs-ck .d{color:#6B7280}
-.zs-dec{border:1px solid;border-radius:14px;overflow:hidden;background:#FFFFFF;margin-top:6px}
+.zs-ck b{font-weight:600;color:var(--text)}
+.zs-ck .d{color:var(--text-muted)}
+/* ---- decision card ---- */
+.zs-dec{border:1px solid;border-radius:var(--radius-lg);overflow:hidden;background:var(--surface);box-shadow:var(--shadow-sm);margin-top:6px}
 .zs-dec-top{display:flex;align-items:center;gap:12px;padding:12px 20px}
-.zs-dec-badge{font-size:13px;font-weight:700;padding:4px 12px;border-radius:999px;color:#FFFFFF;letter-spacing:.02em}
+.zs-dec-badge{font-size:13px;font-weight:700;padding:4px 12px;border-radius:var(--radius-pill);color:var(--surface);letter-spacing:.02em}
 .zs-dec-body{padding:16px 20px 18px}
-.zs-dec-head{font-size:17px;font-weight:600;color:#111827;line-height:1.4}
-.zs-next{margin-top:14px;padding:12px 14px;background:#F8F9FC;border:1px solid #E6E8F0;border-radius:10px;font-size:14px;color:#1F2937}
+.zs-dec-head{font-size:17px;font-weight:600;color:var(--text);line-height:1.4}
+.zs-next{margin-top:14px;padding:12px 14px;background:var(--surface-muted);border:1px solid var(--border);border-radius:var(--radius-md);font-size:14px;color:var(--text-body);font-variant-numeric:tabular-nums}
 .zs-next .zs-eyebrow{margin-bottom:4px}
-.zs-rev{margin-top:14px;display:grid;grid-template-columns:150px 1fr;border:1px solid #E6E8F0;border-radius:10px;overflow:hidden;font-size:14px}
-.zs-rev>div{padding:10px 14px;border-top:1px solid #EEF0F5;color:#1F2937}
+.zs-rev{margin-top:14px;display:grid;grid-template-columns:150px 1fr;border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden;font-size:14px}
+.zs-rev>div{padding:10px 14px;border-top:1px solid var(--border-soft);color:var(--text-body)}
 .zs-rev>div:nth-child(-n+2){border-top:none}
-.zs-rev>div.k{background:#F8F9FC;color:#6B7280;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center}
-.zs-stop{margin-top:8px;font-size:13.5px;color:#4B5563}
-.zs-issue{margin-top:10px;padding:12px 14px;border:1px solid #E6E8F0;border-left:4px solid;border-radius:6px;background:#FFFFFF}
+.zs-rev>div.k{background:var(--surface-muted);color:var(--text-muted);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center}
+.zs-stop{margin-top:8px;font-size:13.5px;color:var(--text-secondary)}
+.zs-issue{margin-top:10px;padding:12px 14px;border:1px solid var(--border);border-left:4px solid;border-radius:var(--radius-sm);background:var(--surface)}
 .zs-issue-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.zs-issue-t{font-size:15px;font-weight:600;color:#111827;margin-top:4px}
-.zs-issue-d{font-size:13.5px;color:#4B5563;margin-top:2px;line-height:1.5}
-.zs-fix{margin-top:10px;padding:8px 12px;background:#F5F6FF;border-radius:8px;font-size:13.5px;color:#1F2937}
+.zs-issue-t{font-size:15px;font-weight:600;color:var(--text);margin-top:4px}
+.zs-issue-d{font-size:13.5px;color:var(--text-secondary);margin-top:2px;line-height:1.5}
+.zs-fix{margin-top:10px;padding:8px 12px;background:var(--primary-tint);border-radius:var(--radius-sm);font-size:13.5px;color:var(--text-body)}
+.zs-fix .zs-eyebrow{color:var(--primary-strong)}
+/* ---- tiles & KPI cards ---- */
 .zs-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px}
-.zs-tile{padding:10px 14px;background:#F8F9FC;border:1px solid #E6E8F0;border-radius:10px}
-.zs-tile-l{font-size:12px;color:#6B7280}
-.zs-tile-v{font-size:18px;font-weight:600;color:#111827;margin-top:2px}
-.zs-tbl{width:100%;border-collapse:separate;border-spacing:0;border:1px solid #E6E8F0;border-radius:10px;overflow:hidden;font-size:13.5px;background:#FFFFFF}
-.zs-tbl th{background:#F8F9FC;color:#6B7280;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;text-align:left;padding:8px 12px;border-bottom:1px solid #E6E8F0}
-.zs-tbl th.grp{color:#4338CA;padding-bottom:2px;border-bottom:none}
-.zs-tbl td{padding:9px 12px;border-bottom:1px solid #F0F1F5;color:#1F2937;vertical-align:top}
+.zs-tile{padding:10px 14px;background:var(--surface-muted);border:1px solid var(--border);border-radius:var(--radius-md)}
+.zs-tile-l{font-size:12px;color:var(--text-muted)}
+.zs-tile-v{font-size:18px;font-weight:600;color:var(--text);margin-top:2px;font-variant-numeric:tabular-nums}
+.zs-tile-v.ok{color:var(--success)}.zs-tile-v.warn{color:var(--warning)}.zs-tile-v.bad{color:var(--danger)}
+.zs-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:4px 0 8px}
+.zs-kpi{position:relative;padding:14px 16px 14px 18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-xs);overflow:hidden}
+.zs-kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent,var(--border))}
+.zs-kpi-l{font-size:12.5px;color:var(--text-muted);font-weight:500;display:flex;align-items:center;gap:6px}
+.zs-kpi-v{font-size:26px;font-weight:650;color:var(--text);margin-top:4px;line-height:1.1;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.zs-kpi-s{font-size:12px;color:var(--text-muted);margin-top:4px}
+/* ---- empty state ---- */
+.zs-empty{border:1px dashed var(--border);border-radius:var(--radius-lg);background:var(--surface-subtle);padding:36px 24px;text-align:center}
+.zs-empty-ic{width:44px;height:44px;margin:0 auto 12px;border-radius:12px;background:var(--primary-tint);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700}
+.zs-empty-t{font-size:16px;font-weight:600;color:var(--text)}
+.zs-empty-b{font-size:14px;color:var(--text-secondary);margin-top:4px;max-width:440px;margin-left:auto;margin-right:auto;line-height:1.5}
+/* ---- tables ---- */
+.zs-tbl{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden;font-size:13.5px;background:var(--surface)}
+.zs-tbl th{background:var(--surface-muted);color:var(--text-muted);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;text-align:left;padding:8px 12px;border-bottom:1px solid var(--border)}
+.zs-tbl th.grp{color:var(--primary-strong);padding-bottom:2px;border-bottom:none}
+.zs-tbl td{padding:9px 12px;border-bottom:1px solid var(--border-soft);color:var(--text-body);vertical-align:top}
+.zs-tbl tbody tr{transition:background-color var(--dur) var(--ease)}
+.zs-tbl tbody tr:hover{background:var(--surface-subtle)}
 .zs-tbl tr:last-child td{border-bottom:none}
-.zs-tbl td.f{font-weight:600;color:#111827}
-.zs-tbl td.s{color:#6B7280}
+.zs-tbl td.f{font-weight:600;color:var(--text)}
+.zs-tbl td.s{color:var(--text-muted)}
 .zs-tbl .n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.zs-tbl .sep{border-left:1px solid #E6E8F0}
-.zs-st{font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
-.zs-st.ok{background:#ECFDF5;color:#047857}
-.zs-st.bad{background:#FEF2F2;color:#B91C1C}
-.zs-st.na{background:#F3F4F6;color:#6B7280}
+.zs-tbl .sep{border-left:1px solid var(--border)}
+.zs-st{font-size:12px;font-weight:600;padding:2px 8px;border-radius:var(--radius-pill);white-space:nowrap}
+.zs-st.ok{background:var(--success-tint);color:var(--success)}
+.zs-st.bad{background:var(--danger-tint);color:var(--danger)}
+.zs-st.na{background:var(--neutral-tint);color:var(--text-muted)}
+/* ---- motion preferences ---- */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:1ms !important;animation-iteration-count:1 !important;transition-duration:1ms !important}
+}
 </style>"""
 st.markdown(CSS, unsafe_allow_html=True)
 
@@ -220,9 +280,11 @@ def approval_actions(run_id: int, key: str) -> None:
     b1, b2, _ = st.columns([1, 1, 3])
     if b1.button("Approve", key=f"ap{key}{run_id}", type="primary", icon=":material/check:", width="stretch"):
         store.set_review(run_id, "APPROVED", "")
+        flash(f"Run #{run_id} approved. Payment can be scheduled.")
         st.rerun()
     if b2.button("Reject", key=f"rj{key}{run_id}", icon=":material/close:", width="stretch"):
         store.set_review(run_id, "REJECTED", "")
+        flash(f"Run #{run_id} rejected.")
         st.rerun()
 
 
@@ -278,7 +340,7 @@ SEV = {"info": "Note", "warn": "Needs review", "hold": "On hold", "fail": "Rejec
 def issue_html(x: dict) -> str:
     tint, strong, _ = PAL[x["level"]]
     where = esc(x.get("step") or "")
-    fix = (f"<div class='zs-fix'><span class='zs-eyebrow' style='color:#4338CA'>How to resolve</span>"
+    fix = (f"<div class='zs-fix'><span class='zs-eyebrow'>How to resolve</span>"
            f"<div>{esc(x['fix'])}</div></div>") if x.get("fix") else ""
     detail = f"<div class='zs-issue-d'>{esc(x['detail'])}</div>" if x.get("detail") else ""
     return (f"<div class='zs-issue' style='border-left-color:{DOT[x['level']]}'>"
@@ -292,13 +354,13 @@ def render_match(m: dict) -> None:
     bal_ok = next((r["ok"] for r in m["rows"] if r["field"] == "Subtotal vs PO balance"), True)
     if po:
         left = po["remaining_after"]
-        col = "color:#047857" if left >= 0 else ("color:#B45309" if bal_ok else "color:#B91C1C")
+        tone = "ok" if left >= 0 else ("warn" if bal_ok else "bad")
         tiles = [("PO " + po["number"] + (" (suggested)" if po["inferred"] else ""), money(po["total"]), ""),
                  (f"Billed before ({po['invoices_before']} inv.)", money(po["billed_before"]), ""),
                  ("This invoice (pre-tax)", money(po["this_invoice"]), ""),
-                 ("Remaining if paid", money(left), col)]
+                 ("Remaining if paid", money(left), tone)]
         st.markdown("<div class='zs-tiles'>" + "".join(
-            f"<div class='zs-tile'><div class='zs-tile-l'>{esc(a)}</div><div class='zs-tile-v' style='{s}'>"
+            f"<div class='zs-tile'><div class='zs-tile-l'>{esc(a)}</div><div class='zs-tile-v {s}'>"
             f"{esc(b)}</div></div>" for a, b, s in tiles) + "</div>", unsafe_allow_html=True)
 
     def badge(ok):
@@ -341,8 +403,35 @@ def run_header(eyebrow: str, name: str) -> None:
     st.markdown(
         f"<div class='zs-runhead'><div><div class='zs-eyebrow'>{eyebrow}</div>"
         f"<div class='zs-fname'>{esc(name)}</div></div>"
-        f"<span class='zs-pill' style='background:#EEF2FF;color:#4338CA'>7-step pipeline</span></div>",
+        f"<span class='zs-pill' style='background:var(--primary-tint);color:var(--primary-strong)'>"
+        f"7-step pipeline</span></div>",
         unsafe_allow_html=True)
+
+
+def section(title: str, hint: str = "") -> None:
+    """Consistent section heading with an optional right-aligned hint."""
+    st.markdown(f"<div class='zs-section' role='heading' aria-level='3'><span class='zs-section-t'>{esc(title)}</span>"
+                f"<span class='zs-section-h'>{esc(hint)}</span></div>", unsafe_allow_html=True)
+
+
+def empty_state(glyph: str, title: str, body: str) -> None:
+    """Friendly placeholder that says what will appear here and how to get it."""
+    st.markdown(f"<div class='zs-empty'><div class='zs-empty-ic'>{glyph}</div>"
+                f"<div class='zs-empty-t'>{esc(title)}</div><div class='zs-empty-b'>{body}</div></div>",
+                unsafe_allow_html=True)
+
+
+def kpi_cards(items: list[tuple]) -> None:
+    """Row of KPI cards: (label, value, accent token or '', sub-text)."""
+    st.markdown("<div class='zs-kpis'>" + "".join(
+        f"<div class='zs-kpi' style='--accent:{acc}'><div class='zs-kpi-l'>{esc(lbl)}</div>"
+        f"<div class='zs-kpi-v'>{esc(val)}</div><div class='zs-kpi-s'>{esc(sub)}</div></div>"
+        for lbl, val, acc, sub in items) + "</div>", unsafe_allow_html=True)
+
+
+def flash(msg: str) -> None:
+    """Queue a confirmation toast that survives the rerun after a button click."""
+    st.session_state["_flash"] = msg
 
 
 def decision_step(d: dict) -> dict:
@@ -415,14 +504,15 @@ def pending_actions(d: dict, key: str, review: bool = True):
 def reviewer_actions(run_id: int, key: str) -> None:
     """Human in the loop for flagged invoices: approve or reject, with an optional note."""
     st.markdown("<div class='zs-eyebrow' style='margin:14px 0 6px'>Reviewer action</div>", unsafe_allow_html=True)
-    note = st.text_input("Note (optional)", placeholder="e.g. Confirmed PO-1004 with requester",
-                         key=f"n{key}{run_id}").strip()
-    b1, b2, _ = st.columns([1, 1, 3])
-    if b1.button("Approve", key=f"ra{key}{run_id}", icon=":material/check:", width="stretch"):
-        store.set_review(run_id, "APPROVED", note)
-        st.rerun()
-    if b2.button("Reject", key=f"rr{key}{run_id}", icon=":material/close:", width="stretch"):
-        store.set_review(run_id, "REJECTED", note)
+    # A form sends the typed note together with the button click: no Enter needed.
+    with st.form(f"rv{key}{run_id}", border=False, enter_to_submit=False):
+        note = st.text_input("Note (optional)", placeholder="e.g. Confirmed PO-1004 with requester")
+        b1, b2, _ = st.columns([1, 1, 3])
+        approve = b1.form_submit_button("Approve", icon=":material/check:", width="stretch")
+        reject = b2.form_submit_button("Reject", icon=":material/close:", width="stretch")
+    if approve or reject:
+        store.set_review(run_id, "APPROVED" if approve else "REJECTED", note.strip())
+        flash(f"Run #{run_id} {'approved' if approve else 'rejected'} by reviewer.")
         st.rerun()
 
 
@@ -437,7 +527,7 @@ with st.sidebar:
         st.warning("No Gemini key: using rule-based fallback (scanned invoices can't be read).",
                    icon=":material/warning:")
     rules = load_rules()
-    with st.form("rules_form", border=False):
+    with st.form("rules_form", border=False, enter_to_submit=False):  # values apply on Save, no Enter needed
         limit = st.number_input(
             "Auto-approve limit ($)", min_value=0, step=1000, value=int(rules["auto_approve_max_amount"]),
             help="Invoices with a total above this go to Needs review instead of the Approve prompt, "
@@ -452,12 +542,16 @@ with st.sidebar:
             save_rules({"auto_approve_max_amount": int(limit), "duplicate_window_days": int(window)})
             st.toast("Rules saved. They apply to the next invoice you process.", icon=":material/check:")
     st.divider()
-    if st.button("Reset demo data", icon=":material/restart_alt:", width="stretch",
-                 help="Clears run history and PO balances so the demo can be replayed."):
-        store.reset()
-        st.session_state.pop("last_run", None)
-        st.toast("History cleared")
-        st.rerun()
+    with st.popover("Reset demo data", icon=":material/restart_alt:", width="stretch"):
+        st.markdown("**Clear all run history?**  \nPO balances go back to full. This can't be undone.")
+        if st.button("Yes, reset", type="primary", icon=":material/delete:", width="stretch"):
+            store.reset()
+            st.session_state.pop("last_run", None)
+            flash("Demo data cleared.")
+            st.rerun()
+
+if msg := st.session_state.pop("_flash", None):
+    st.toast(msg, icon=":material/check_circle:")
 
 tab_run, tab_dash, tab_rec, tab_data = st.tabs([":material/play_circle: Run an invoice",
                                                 ":material/monitoring: Dashboard", ":material/receipt_long: Records",
@@ -493,30 +587,34 @@ with tab_run:
         elif st.session_state.get("last_run"):
             replay(st.session_state["last_run"], below)
         else:
-            st.info("Pick a sample (or upload a PDF) and press **Process invoice** to watch each stage run.",
-                    icon=":material/info:")
+            empty_state("▶", "Ready when you are",
+                        "Pick a sample scenario or upload a PDF, then press <b>Process invoice</b> to watch "
+                        "each of the 7 steps run and get a reasoned decision.")
 
 # ---------------- dashboard tab ----------------
 
 with tab_dash:
     runs = store.list_runs()
     counts = {k: sum(r["decision"] == k for r in runs) for k in DEC}
-    c = st.columns(7)
-    c[0].metric("Invoices processed", len(runs))
-    c[1].metric("Awaiting approval", counts["PENDING_APPROVAL"])
-    c[2].metric("Approved", counts["APPROVED"])
-    c[3].metric("Needs review", counts["NEEDS_REVIEW"])
-    c[4].metric("On hold", counts["ON_HOLD"])
-    c[5].metric("Rejected", counts["REJECTED"])
-    c[6].metric("Approved value", f"${sum(r['total'] or 0 for r in runs if r['decision'] == 'APPROVED'):,.0f}")
+    approved_value = sum(r["total"] or 0 for r in runs if r["decision"] == "APPROVED")
+    waiting = counts["PENDING_APPROVAL"] + counts["NEEDS_REVIEW"] + counts["ON_HOLD"]
+    kpi_cards([
+        ("Invoices processed", str(len(runs)), "var(--primary)", f"{waiting} waiting on a person"),
+        ("Awaiting approval", str(counts["PENDING_APPROVAL"]), "var(--primary-dot)", "All checks passed"),
+        ("Approved", str(counts["APPROVED"]), "var(--success-dot)", money(approved_value)),
+        ("Needs review", str(counts["NEEDS_REVIEW"]), "var(--warning-dot)", "Flagged by a rule"),
+        ("On hold", str(counts["ON_HOLD"]), "var(--danger-dot)", "Possible fraud signal"),
+        ("Rejected", str(counts["REJECTED"]), "var(--danger-strong)", "Not to be paid"),
+    ])
 
     if not runs:
-        st.info("No runs yet.", icon=":material/info:")
+        empty_state("◎", "No invoices yet",
+                    "Process an invoice on the <b>Run an invoice</b> tab and its full trail will appear here.")
     else:
-        st.subheader("Run details")
+        section("Run details", "Steps, comparison and decision for one invoice")
         rid = st.selectbox("Open run", [r["id"] for r in runs],
-                           format_func=lambda i: next(f"#{r['id']} · {r['invoice_number']} · {r['decision']}"
-                                                      for r in runs if r["id"] == i))
+                           format_func=lambda i: next(f"#{r['id']} · {r['invoice_number']} · {r['vendor_name']}"
+                                                      f" · {DEC[r['decision']][0]}" for r in runs if r["id"] == i))
         run = store.get_run(rid)
         steps = json.loads(run["steps_json"])
         d1, d2 = st.columns([3, 2], gap="large")
@@ -528,14 +626,15 @@ with tab_dash:
             dec_now = current_decision(steps[-1], run)
             render_decision(dec_now, actions=pending_actions(dec_now, "dash", review=False))
         with d2:
-            st.markdown("**Extracted fields**")
+            st.markdown("<div class='zs-eyebrow' style='margin:0 0 6px'>Extracted fields</div>",
+                        unsafe_allow_html=True)
             render_fields(json.loads(run["extraction_json"])["fields"], heading=False)
             pdf_path = UPLOADS / f"{rid}.pdf"
             if pdf_path.exists():
                 st.download_button("Download original PDF", pdf_path.read_bytes(), icon=":material/download:",
                                    file_name=run["filename"], mime="application/pdf", key=f"dl{rid}")
 
-    st.subheader("PO balances")
+    section("PO balances", "Only approved invoices count as billed")
     vend = {v["vendor_id"]: v["legal_name"] for v in store.vendors()}
     mf = manifest()
     samples = {m["file"] for m in mf}
@@ -559,7 +658,9 @@ with tab_dash:
 with tab_rec:
     runs = store.list_runs()
     if not runs:
-        st.info("No invoices processed yet.", icon=":material/info:")
+        empty_state("≡", "No records yet",
+                    "Every invoice you process is logged here with its decision and reason, ready to filter "
+                    "and search.")
     else:
         f1, f2, f3 = st.columns([2, 2, 3])
         dec_labels = {k: DEC[k][0] for k in DEC}
@@ -588,10 +689,20 @@ with tab_rec:
 # ---------------- master data tab ----------------
 
 with tab_data:
-    st.caption("A mock procurement system. In production these would come from the ERP.")
-    st.markdown("**Vendor master**")
-    st.dataframe(pd.read_csv(ROOT / "data" / "vendors.csv", dtype=str), hide_index=True, width="stretch")
-    st.markdown("**Purchase orders**")
-    st.dataframe(pd.read_csv(ROOT / "data" / "purchase_orders.csv"), hide_index=True, width="stretch")
-    st.markdown("**PO lines**")
-    st.dataframe(pd.read_csv(ROOT / "data" / "po_lines.csv"), hide_index=True, width="stretch")
+    def master(csv: str, **kw) -> pd.DataFrame:
+        """Load a master-data CSV with human column names ('po_number' -> 'PO number')."""
+        df = pd.read_csv(ROOT / "data" / csv, **kw)
+        nice = {"id": "ID", "po": "PO", "no": "#", "iban": "IBAN", "tax": "Tax"}
+        df.columns = [" ".join(nice.get(w, w) for w in c.split("_")).capitalize()
+                      .replace("Po ", "PO ").replace(" id", " ID") for c in df.columns]
+        return df
+
+    money_cfg = st.column_config.NumberColumn(format="$%.2f")
+    section("Vendor master", "Source of truth for tax IDs and bank details")
+    st.dataframe(master("vendors.csv", dtype=str), hide_index=True, width="stretch")
+    section("Purchase orders", "A mock procurement system; in production this comes from the ERP")
+    st.dataframe(master("purchase_orders.csv"), hide_index=True, width="stretch",
+                 column_config={"Total amount": money_cfg})
+    section("PO lines", "What each PO allows, line by line")
+    st.dataframe(master("po_lines.csv"), hide_index=True, width="stretch",
+                 column_config={"Unit price": money_cfg})

@@ -1,6 +1,15 @@
 [theme]
 base = "light"
+# Indigo fintech palette; mirrors the design tokens at the top of app.py's CSS.
 primaryColor = "#4F46E5"
 backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F4F5FB"
-textColor = "#111827"
+secondaryBackgroundColor = "#F6F7FB"
+textColor = "#101828"
+borderColor = "#E4E7EF"
+baseRadius = "10px"
+# Inter: recommended by ui-ux-pro-max for fintech dashboards; tabular figures are applied in CSS.
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap, sans-serif"
+dataframeHeaderTextColor = "#667085"
+
+[theme.sidebar]
+backgroundColor = "#F6F7FB"
