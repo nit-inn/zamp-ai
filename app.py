@@ -234,10 +234,7 @@ def review_html(d: dict) -> str:
     rv = d.get("review")
     if not rv:
         return ""
-    sys_label, tint, strong, _ = DEC[rv["system"]]
-    rows = [("Reviewed by", esc(rv["by"])),
-            ("System verdict", f"<span class='zs-pill' style='background:{tint};color:{strong}'>{sys_label}</span>"
-                               f"&nbsp; {esc(rv['system_reason'])}")]
+    rows = [("Reviewed by", esc(rv["by"])), ("System verdict", esc(rv["system_reason"]))]
     if rv["note"] and rv["note"] not in AUTO_NOTES:
         rows.append(("Reviewer note", esc(rv["note"])))
     return "<div class='zs-rev'>" + "".join(f"<div class='k'>{k}</div><div>{v}</div>" for k, v in rows) + "</div>"
