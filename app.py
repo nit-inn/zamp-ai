@@ -73,7 +73,15 @@ CSS = """<style>
 [data-testid="stSidebarCollapseButton"],[data-testid="stSidebarCollapsedControl"],[data-testid="stExpandSidebarButton"]{display:none !important}
 [data-testid="stSidebarHeader"] img{height:2.4rem !important;max-width:none;margin-top:1.25rem !important}
 [data-testid="stSidebarHeader"]{height:auto !important;min-height:4.5rem}
-[data-testid="stSidebar"]{border-right:1px solid var(--border)}
+[data-testid="stSidebar"]{border-right:1px solid #1E293B}
+.zs-side-title{font-size:16px;font-weight:600;color:#FFFFFF;letter-spacing:-.01em;margin-top:4px}
+.zs-side-sub{font-size:12.5px;color:#94A3B8;line-height:1.5;margin-top:3px}
+.zs-side-sec{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#64748B;margin:14px 0 2px}
+.zs-side-foot{display:flex;align-items:center;gap:8px;font-size:12px;color:#94A3B8;margin-top:18px}
+.zs-confirm{display:flex;flex-direction:column;gap:4px;margin-bottom:4px}
+.zs-confirm b{font-size:14.5px;font-weight:600;color:#F8FAFC}
+.zs-confirm span{font-size:13px;color:#94A3B8;line-height:1.5}
+.zs-live{width:8px;height:8px;border-radius:50%;background:#10B981;box-shadow:0 0 0 3px rgba(16,185,129,.18)}
 [data-testid="stMainBlockContainer"]{padding-top:2.5rem}
 h1,h2,h3{letter-spacing:-.01em}
 button{transition:background-color var(--dur) var(--ease),border-color var(--dur) var(--ease),box-shadow var(--dur) var(--ease)}
@@ -158,6 +166,62 @@ button{transition:background-color var(--dur) var(--ease),border-color var(--dur
 .zs-st.ok{background:var(--success-tint);color:var(--success)}
 .zs-st.bad{background:var(--danger-tint);color:var(--danger)}
 .zs-st.na{background:var(--neutral-tint);color:var(--text-muted)}
+/* ---- robot mascot (Run tab) ---- */
+.zs-bot{margin-top:22px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface-subtle);padding:16px 16px 12px;display:flex;flex-direction:column;align-items:center;gap:6px;overflow:hidden;position:relative}
+.zs-bubble{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 12px;font-size:13px;color:var(--text-body);text-align:center;max-width:260px;box-shadow:var(--shadow-xs);line-height:1.45}
+.zs-bubble::after{content:"";position:absolute;left:50%;bottom:-6px;width:10px;height:10px;background:var(--surface);border-right:1px solid var(--border);border-bottom:1px solid var(--border);transform:translateX(-50%) rotate(45deg)}
+.zs-stage{position:relative;width:200px;height:150px}
+.rb{width:120px;height:150px;position:absolute;left:40px;top:0;overflow:visible;cursor:pointer}
+.rb *{transform-box:fill-box}
+.rb-all{transform-origin:center bottom;animation:rb-bob 2.4s ease-in-out infinite}
+.rb-eyes{transform-origin:center;animation:rb-blink 4s infinite}
+.rb-light{fill:var(--primary-dot);animation:rb-glow 1.6s ease-in-out infinite}
+.rb-chest{fill:var(--primary-border)}
+.rb-arm-l{transform-origin:top center}.rb-arm-r{transform-origin:top center}
+.rb-leg-l,.rb-leg-r{transform-origin:top center}
+.rb-shadow{fill:rgba(15,23,42,.10);transform-origin:center;animation:rb-shadow 2.4s ease-in-out infinite}
+.rb-q{opacity:0;font:700 22px Inter,sans-serif;fill:var(--warning)}
+.rb:hover .rb-arm-r{animation:rb-wave .5s ease-in-out infinite alternate}
+.zs-track{position:absolute;left:0;right:0;bottom:6px;height:2px;background:repeating-linear-gradient(90deg,var(--border) 0 14px,transparent 14px 26px);opacity:0}
+/* running */
+.st-run .zs-track{opacity:1;animation:rb-track .45s linear infinite}
+.st-run .rb-all{animation:rb-runbob .3s ease-in-out infinite;transform:rotate(6deg)}
+.st-run .rb-leg-l{animation:rb-legs .3s ease-in-out infinite alternate}
+.st-run .rb-leg-r{animation:rb-legs .3s ease-in-out infinite alternate-reverse}
+.st-run .rb-arm-l{animation:rb-arms .3s ease-in-out infinite alternate}
+.st-run .rb-arm-r{animation:rb-arms .3s ease-in-out infinite alternate-reverse}
+.st-run .rb-shadow{animation:rb-shadow .3s ease-in-out infinite}
+.st-run .rb-light{animation-duration:.5s}
+/* happy */
+.st-happy .rb-all{animation:rb-jump .9s cubic-bezier(.3,.7,.4,1) infinite}
+.st-happy .rb-arm-l{transform:rotate(150deg)}.st-happy .rb-arm-r{transform:rotate(-150deg)}
+.st-happy .rb-light,.st-happy .rb-chest{fill:var(--success-dot)}
+.st-happy .rb-shadow{animation:rb-shadow-j .9s cubic-bezier(.3,.7,.4,1) infinite}
+/* thinking */
+.st-think .rb-all{animation:rb-tilt 2.2s ease-in-out infinite}
+.st-think .rb-arm-r{transform:rotate(-120deg)}
+.st-think .rb-light,.st-think .rb-chest{fill:var(--warning-dot)}
+.st-think .rb-q{animation:rb-q 1.6s ease-in-out infinite}
+/* alert */
+.st-alert .rb-all{animation:rb-shake .35s ease-in-out infinite}
+.st-alert .rb-light,.st-alert .rb-chest{fill:var(--danger-dot)}
+.st-alert .rb-light{animation:rb-flash .5s steps(2) infinite}
+.st-alert .rb-arm-l{transform:rotate(25deg)}.st-alert .rb-arm-r{transform:rotate(-25deg)}
+@keyframes rb-bob{50%{transform:translateY(-4px)}}
+@keyframes rb-shadow{50%{transform:scaleX(.85)}}
+@keyframes rb-shadow-j{40%{transform:scaleX(.6);opacity:.5}}
+@keyframes rb-blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes rb-glow{50%{opacity:.45}}
+@keyframes rb-flash{50%{opacity:.2}}
+@keyframes rb-wave{from{transform:rotate(-120deg)}to{transform:rotate(-165deg)}}
+@keyframes rb-runbob{50%{transform:rotate(6deg) translateY(-5px)}}
+@keyframes rb-legs{from{transform:rotate(32deg)}to{transform:rotate(-32deg)}}
+@keyframes rb-arms{from{transform:rotate(-38deg)}to{transform:rotate(38deg)}}
+@keyframes rb-track{to{background-position:-26px 0}}
+@keyframes rb-jump{0%,100%{transform:translateY(0)}40%{transform:translateY(-18px)}}
+@keyframes rb-tilt{0%,100%{transform:rotate(0)}50%{transform:rotate(-7deg)}}
+@keyframes rb-q{0%,100%{opacity:0;transform:translateY(4px)}40%,70%{opacity:1;transform:translateY(-2px)}}
+@keyframes rb-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
 /* ---- motion preferences ---- */
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:1ms !important;animation-iteration-count:1 !important;transition-duration:1ms !important}
@@ -429,6 +493,47 @@ def kpi_cards(items: list[tuple]) -> None:
         for lbl, val, acc, sub in items) + "</div>", unsafe_allow_html=True)
 
 
+ROBOT_SVG = (
+    "<svg class='rb' viewBox='0 0 120 150' role='img' aria-label='Assistant robot'>"
+    "<ellipse class='rb-shadow' cx='60' cy='143' rx='28' ry='4'/>"
+    "<g class='rb-all'>"
+    "<text class='rb-q' x='92' y='26'>?</text>"
+    "<line x1='60' y1='14' x2='60' y2='27' stroke='#94A3B8' stroke-width='3' stroke-linecap='round'/>"
+    "<circle class='rb-light' cx='60' cy='11' r='5.5'/>"
+    "<rect x='30' y='26' width='60' height='44' rx='15' fill='#4F46E5'/>"
+    "<rect x='38' y='34' width='44' height='28' rx='10' fill='#1E1B4B'/>"
+    "<g class='rb-eyes'><ellipse cx='50' cy='47' rx='5' ry='6' fill='#A5B4FC'/>"
+    "<ellipse cx='70' cy='47' rx='5' ry='6' fill='#A5B4FC'/></g>"
+    "<path d='M53 56 Q60 60 67 56' stroke='#A5B4FC' stroke-width='2.5' fill='none' stroke-linecap='round'/>"
+    "<rect x='54' y='70' width='12' height='6' rx='2' fill='#94A3B8'/>"
+    "<g class='rb-arm-l'><rect x='22' y='79' width='10' height='30' rx='5' fill='#818CF8'/></g>"
+    "<g class='rb-arm-r'><rect x='88' y='79' width='10' height='30' rx='5' fill='#818CF8'/></g>"
+    "<g class='rb-leg-l'><rect x='44' y='112' width='12' height='26' rx='6' fill='#6366F1'/></g>"
+    "<g class='rb-leg-r'><rect x='64' y='112' width='12' height='26' rx='6' fill='#6366F1'/></g>"
+    "<rect x='34' y='75' width='52' height='42' rx='13' fill='#6366F1'/>"
+    "<circle class='rb-chest' cx='60' cy='93' r='7'/>"
+    "</g></svg>")
+
+BOT_FOR = {"PENDING_APPROVAL": ("happy", "All checks passed. Ready for your approval."),
+           "APPROVED": ("happy", "Approved. Payment can be scheduled."),
+           "NEEDS_REVIEW": ("think", "Hmm, something here needs a human look."),
+           "ON_HOLD": ("alert", "Stop! Possible fraud signal. Don't pay yet."),
+           "REJECTED": ("alert", "Rejected. This one shouldn't be paid.")}
+
+
+def render_bot(ph, state: str, msg: str) -> None:
+    """Robot mascot: idle / run / happy / think / alert. Pure SVG + CSS, no effect on the pipeline."""
+    if ph is None:
+        return
+    ph.markdown(f"<div class='zs-bot st-{state}'><div class='zs-bubble'>{esc(msg)}</div>"
+                f"<div class='zs-stage'>{ROBOT_SVG}<div class='zs-track'></div></div></div>",
+                unsafe_allow_html=True)
+
+
+def bot_for_decision(ph, d: dict) -> None:
+    render_bot(ph, *BOT_FOR.get(d["decision"], ("idle", "Done.")))
+
+
 def flash(msg: str) -> None:
     """Queue a confirmation toast that survives the rerun after a button click."""
     st.session_state["_flash"] = msg
@@ -439,21 +544,25 @@ def decision_step(d: dict) -> dict:
             "summary": d["decision"].replace("_", " "), "checks": []}
 
 
-def run_live(pdf_bytes: bytes, name: str, below) -> None:
+def run_live(pdf_bytes: bytes, name: str, below, bot=None) -> None:
     """Steps stream into the current column; fields and the decision go full-width into `below`."""
     run_header("Processing invoice", name)
     phs = {k: st.empty() for k in STEP_KEYS}
     for k, t in STEPS:
         render_step(phs[k], {"step": k, "title": t}, "pending")
+    render_bot(bot, "run", "On it! Starting the 7 steps…")
     events = []
     for ev in run_pipeline(pdf_bytes, name):
         if ev["type"] == "start":
             render_step(phs[ev["step"]], ev, "running")
+            n = STEP_KEYS.index(ev["step"]) + 1
+            render_bot(bot, "run", f"Step {n} of {len(STEP_KEYS)} · {ev['title']}")
         elif ev["type"] == "done":
             events.append(ev)
             render_step(phs[ev["step"]], ev)
         else:
             render_step(phs["decision"], decision_step(ev))
+            bot_for_decision(bot, ev)
             st.session_state["last_run"] = {"name": name, "events": events, "decision": ev}
             with below:
                 render_fields(extracted(events))
@@ -464,7 +573,7 @@ def extracted(events: list[dict]) -> dict:
     return next(((e.get("data") or {}).get("fields") or {} for e in events if e["step"] == "extract"), {})
 
 
-def replay(run: dict, below) -> None:
+def replay(run: dict, below, bot=None) -> None:
     run_header("Last run", run["name"])
     for ev in run["events"]:
         render_step(st.empty(), ev)
@@ -473,6 +582,7 @@ def replay(run: dict, below) -> None:
     if saved:  # pick up an approval / rejection made since the run
         d = current_decision(d, saved)
     render_step(st.empty(), decision_step(d))
+    bot_for_decision(bot, d)
     with below:
         render_fields(extracted(run["events"]))
         render_decision(d, actions=pending_actions(d, "live"))
@@ -518,14 +628,21 @@ def reviewer_actions(run_id: int, key: str) -> None:
 
 # ---------------- sidebar ----------------
 
-st.logo(str(ROOT / "assets" / "zamp_logo.svg"), size="large")
+st.logo(str(ROOT / "assets" / "zamp_logo_white.svg"), size="large")
+
+
+def side_label(text: str) -> None:
+    st.markdown(f"<div class='zs-side-sec'>{esc(text)}</div>", unsafe_allow_html=True)
+
 
 with st.sidebar:
-    st.title("Invoice Decision Engine")
-    st.caption("PDF in, reasoned decision out. AI reads; rules decide.")
+    st.markdown("<div class='zs-side-title'>Invoice Decision Engine</div>"
+                "<div class='zs-side-sub'>PDF in, reasoned decision out. AI reads; rules decide.</div>",
+                unsafe_allow_html=True)
     if not gemini_key():
         st.warning("No Gemini key: using rule-based fallback (scanned invoices can't be read).",
                    icon=":material/warning:")
+    side_label("Rules")
     rules = load_rules()
     with st.form("rules_form", border=False, enter_to_submit=False):  # values apply on Save, no Enter needed
         limit = st.number_input(
@@ -538,12 +655,14 @@ with st.sidebar:
             help="Same vendor and same total but a different invoice number, with invoice dates this many "
                  "days apart or less, is flagged as a possible duplicate. 0 turns this check off. "
                  "Exact re-uploads and repeated invoice numbers are always caught.")
-        if st.form_submit_button("Save rules", icon=":material/save:", width="stretch"):
+        if st.form_submit_button("Save rules", type="primary", icon=":material/save:", width="stretch"):
             save_rules({"auto_approve_max_amount": int(limit), "duplicate_window_days": int(window)})
             st.toast("Rules saved. They apply to the next invoice you process.", icon=":material/check:")
-    st.divider()
+    side_label("Demo")
     with st.popover("Reset demo data", icon=":material/restart_alt:", width="stretch"):
-        st.markdown("**Clear all run history?**  \nPO balances go back to full. This can't be undone.")
+        st.markdown("<div class='zs-confirm'><b>Clear all run history?</b>"
+                    "<span>PO balances go back to full. This can't be undone.</span></div>",
+                    unsafe_allow_html=True)
         if st.button("Yes, reset", type="primary", icon=":material/delete:", width="stretch"):
             store.reset()
             st.session_state.pop("last_run", None)
@@ -580,13 +699,15 @@ with tab_run:
                 pdf_bytes, name = up.getvalue(), up.name
         go = st.button("Process invoice", type="primary", icon=":material/play_arrow:",
                        disabled=pdf_bytes is None, width="stretch")
+        bot = st.empty()  # robot mascot; reacts to the run below
     below = st.container()  # full width, under both columns: extracted fields + decision
     with right:
         if go and pdf_bytes:
-            run_live(pdf_bytes, name, below)
+            run_live(pdf_bytes, name, below, bot)
         elif st.session_state.get("last_run"):
-            replay(st.session_state["last_run"], below)
+            replay(st.session_state["last_run"], below, bot)
         else:
+            render_bot(bot, "idle", "Hi! Pick an invoice and press Process invoice. I'll walk it through all 7 steps.")
             empty_state("▶", "Ready when you are",
                         "Pick a sample scenario or upload a PDF, then press <b>Process invoice</b> to watch "
                         "each of the 7 steps run and get a reasoned decision.")

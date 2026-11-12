@@ -12,4 +12,9 @@ font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;70
 dataframeHeaderTextColor = "#667085"
 
 [theme.sidebar]
-backgroundColor = "#F6F7FB"
+# Dark navy sidebar: slate-900 surface, slate-800 inputs, indigo primary button.
+backgroundColor = "#0F172A"
+secondaryBackgroundColor = "#1E293B"
+textColor = "#E2E8F0"
+primaryColor = "#6366F1"
+borderColor = "#334155"
